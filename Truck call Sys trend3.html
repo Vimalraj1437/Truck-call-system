@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Truck Call System – MASTER V10</title>
+
+<style>
+/* ================= BASE & THEME ================= */
+body{font-family:Arial,sans-serif;background:#eef2f6;margin:0;padding:14px;color:#333; height: 100vh; display: flex; flex-direction: column;}
+.hidden{display:none !important}
+.page-header{background:#1f4e79;color:#fff;padding:16px;text-align:center;border-radius:6px;margin-bottom:8px;font-weight:bold; position: relative;}
+
+/* ================= LAYOUT ================= */
+#topSection { display:flex; gap:15px; margin-bottom:15px; flex-shrink: 0; transition: 0.3s; }
+.forms-container{display:flex; flex-direction:column; gap:10px; flex: 0.8; min-width:320px;}
+
+form{background:#fff;padding:15px;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.1);display:none;border-top:4px solid #2e7d32} 
+form h3{background:#2e7d32;color:#fff;padding:8px;margin:-15px -15px 12px;text-align:center;border-radius:6px 6px 0 0;font-size:13px}
+label{font-size:11px;font-weight:bold;display:block;margin-top:8px;color:#555}
+input, select{width:100%;padding:7px;margin-top:4px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;font-size:12px}
+
+.check-options { display: flex; gap: 8px; margin-top: 5px; background: #f9f9f9; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+.check-options label { margin-top: 0; display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; color:#1f4e79 }
+.check-options input[type="radio"] { width: auto; margin: 0; cursor: pointer; }
+
+/* ================= TREND GRAPH ================= */
+.trend-container { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex: 1.2; display: flex; flex-direction: column; min-width: 380px; border-top: 4px solid #1f4e79; }
+.trend-controls { display: flex; gap: 5px; justify-content: center; align-items: center; background: #f1f3f5; padding: 8px; border-radius: 6px; margin-bottom: 5px; }
+.trend-controls input { width: 115px; padding: 4px; font-size: 11px; margin:0}
+.btn-util { background: #0d47a1; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+
+.chart-area { display: flex; align-items: flex-end; justify-content: space-around; flex-grow: 1; height: 90px; padding-bottom: 5px; border-bottom: 1px solid #eee; gap: 5px; margin-top: 5px;}
+.bar-group { display: flex; align-items: flex-end; gap: 2px; width: 30%; height: 100%; position: relative; }
+.bar { width: 45%; border-radius: 2px 2px 0 0; position: relative; min-height: 2px; transition: height 0.5s ease; }
+.bar-in { background: #1f4e79; } 
+.bar-out { background: #2e7d32; } 
+.bar-val { font-size: 9px; position: absolute; top: -14px; width: 100%; text-align: center; font-weight: bold; }
+.bar-label { position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; font-weight: bold; color: #444; }
+
+/* ================= DASHBOARD & TV MODE ================= */
+.dashboard-panel{flex:1; min-width:300px; display:flex; flex-direction:column; gap:10px}
+.total-counter{background:#263238; color:#fff; padding:12px; border-radius:6px; text-align:center; border-bottom: 5px solid #ffeb3b;}
+.total-counter span { font-size: 28px; font-weight: bold; color: #ffeb3b; }
+.port-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.dash-card { background: #1f4e79; color: #fff; padding: 10px; border-radius: 6px; border-left: 5px solid #ffeb3b; font-size: 12px; }
+
+/* ================= SCROLLABLE TABLE ================= */
+.table-container { background:#fff; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.1); flex-grow: 1; overflow: auto; height: calc(100vh - 350px); }
+table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+thead { position: sticky; top: 0; z-index: 100; }
+th, td { border: 1px solid #ddd; padding: 10px; font-size: 12px; text-align: center; }
+th { background: #1f4e79; color: #fff; text-transform: uppercase; }
+.filter-row th { background: #37474f; padding: 4px; }
+
+.fifo-next { animation: pulse 1.5s infinite; font-weight:bold}
+@keyframes pulse { 50% { background: #fff9c4; } }
+
+.btn-call{background:#c62828;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;font-size:10px;width:100%}
+.btn-ack{background:#2e7d32;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;font-size:10px;width:100%}
+.btn-send{background:#0277bd;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;font-size:10px;width:100%}
+.status-ack{background:#e8f5e9;color:#2e7d32;font-weight:bold}
+
+.tv-mode .table-container { height: calc(100vh - 120px); }
+</style>
+</head>
+
+<body>
+
+<div id="loginScreen" style="max-width:340px; margin:100px auto; background:#fff; padding:25px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.2)">
+    <h3 style="text-align:center; color:#1f4e79;">🚦 Master Login</h3>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()" style="width:100%; padding:10px; background:#1b5e20; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold">Enter System</button>
+</div>
+
+<div id="appScreen" class="hidden">
+    <div class="page-header">
+        🚦 MASTER TRUCK CALL & FIFO SYSTEM
+        <button onclick="toggleTV()" class="btn-util" style="position:absolute; right:15px; top:12px; background:#ff9800">📺 TV MODE</button>
+    </div>
+
+    <div id="topSection">
+        <div class="forms-container">
+            <form id="supplierForm" onsubmit="saveEntry(event, 'SUPPLIER')">
+                <h3>GATE ENTRY</h3>
+                <input type="hidden" id="s_id">
+                <div class="check-options">
+                    <label><input type="radio" name="opt_s" value="Body" checked onchange="syncOptions('Body')"> Body</label>
+                    <label><input type="radio" name="opt_s" value="T&C" onchange="syncOptions('T&C')"> T&C</label>
+                    <label><input type="radio" name="opt_s" value="PWT" onchange="syncOptions('PWT')"> PWT</label>
+                </div>
+                <label>Port</label><input id="s_port" placeholder="Port A" required>
+                <label>Truck</label><input id="s_truck" placeholder="TR-123" required>
+                <label>Gate In</label><input type="datetime-local" id="s_in">
+                <label>Gate Out</label><input type="datetime-local" id="s_out">
+                <button type="submit" style="background:#1b5e20;color:#fff;border:none;padding:10px;margin-top:10px;width:100%;border-radius:4px;cursor:pointer; font-weight:bold">Save Entry</button>
+            </form>
+
+            <form id="riplForm" onsubmit="saveEntry(event, 'RIPL')">
+                <h3 style="background:#0277bd">RIPL ENTRY</h3>
+                <div class="check-options">
+                    <label><input type="radio" name="opt_r" value="Body" checked onchange="syncOptions('Body')"> Body</label>
+                    <label><input type="radio" name="opt_r" value="T&C" onchange="syncOptions('T&C')"> T&C</label>
+                    <label><input type="radio" name="opt_r" value="PWT" onchange="syncOptions('PWT')"> PWT</label>
+                </div>
+                <label>Search Truck</label><input id="r_truck" required>
+                <label>RIPL In</label><input type="datetime-local" id="r_in">
+                <label>RIPL Out</label><input type="datetime-local" id="r_out">
+                <button type="submit" style="background:#0277bd;color:#fff;border:none;padding:10px;margin-top:10px;width:100%;border-radius:4px;cursor:pointer; font-weight:bold">Update RIPL</button>
+            </form>
+        </div>
+
+        <div class="trend-container">
+            <div style="font-size:11px; font-weight:bold; text-align:center; color:#1f4e79">TREND: GATE OUT vs RIPL OUT</div>
+            <div class="trend-controls">
+                <input type="date" id="trend_start" onchange="render()">
+                <span>to</span>
+                <input type="date" id="trend_end" onchange="render()">
+                <button class="btn-util" onclick="exportExcel()">⬇ EXPORT</button>
+            </div>
+            <div class="chart-area">
+                <div class="bar-group"><div id="barBodyIn" class="bar bar-in"><span id="valBodyIn" class="bar-val">0</span></div><div id="barBodyOut" class="bar bar-out"><span id="valBodyOut" class="bar-val">0</span></div><div class="bar-label">BODY</div></div>
+                <div class="bar-group"><div id="barTCIn" class="bar bar-in"><span id="valTCIn" class="bar-val">0</span></div><div id="barTCOut" class="bar bar-out"><span id="valTCOut" class="bar-val">0</span></div><div class="bar-label">T&C</div></div>
+                <div class="bar-group"><div id="barPWTIn" class="bar bar-in"><span id="valPWTIn" class="bar-val">0</span></div><div id="barPWTOut" class="bar bar-out"><span id="valPWTOut" class="bar-val">0</span></div><div class="bar-label">PWT</div></div>
+            </div>
+        </div>
+        
+        <div class="dashboard-panel">
+            <div class="total-counter"><small>QUEUED (<span id="countLabel">BODY</span>)</small><span id="totalWaitingCount">0</span></div>
+            <div id="portDashboard" class="port-grid"></div>
+        </div>
+    </div>
+
+    <div id="tableScroll" class="table-container">
+        <table>
+            <thead>
+                <tr class="filter-row">
+                    <th colspan="2">FILTERS ➔</th>
+                    <th><select id="f_port" onchange="render()"><option value="">All Ports</option></select></th>
+                    <th colspan="5"></th>
+                    <th><select id="f_status" onchange="render()"><option value="">All Status</option><option>QUEUED</option><option>ACKNOWLEDGED</option><option>VEHICLE SENT</option><option>PROCESSING</option><option>COMPLETED</option></select></th>
+                    <th colspan="2"></th>
+                </tr>
+                <tr>
+                    <th>FIFO</th><th>Category</th><th>Port</th><th>Truck No</th><th>Gate In</th><th>Gate Out</th><th>RIPL In</th><th>RIPL Out</th><th>Status</th><th>Port Call</th><th>Modify</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<audio id="callSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script>
+let rows = JSON.parse(localStorage.getItem('rowsData_V10') || '[]');
+let callState = JSON.parse(localStorage.getItem('callState_V10') || '{}');
+let role = '';
+let activeOpt = 'Body';
+
+window.onload = () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('trend_start').value = today;
+    document.getElementById('trend_end').value = today;
+};
+
+function login() {
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if(p.includes('@123')) {
+        role = u.toUpperCase();
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        if(role === 'SUPPLIER' || role === 'ADMIN') document.getElementById('supplierForm').style.display = 'block';
+        if(role === 'RIPL' || role === 'ADMIN') document.getElementById('riplForm').style.display = 'block';
+        render();
+    }
+}
+
+function toggleTV() {
+    document.body.classList.toggle('tv-mode');
+    document.getElementById('topSection').classList.toggle('hidden');
+}
+
+function syncOptions(val) {
+    activeOpt = val;
+    document.getElementById('countLabel').innerText = val.toUpperCase();
+    document.getElementsByName('opt_s').forEach(r => r.checked = (r.value === val));
+    document.getElementsByName('opt_r').forEach(r => r.checked = (r.value === val));
+    render();
+}
+
+function saveEntry(e, type) {
+    e.preventDefault();
+    if(type === 'SUPPLIER') {
+        const id = document.getElementById('s_id').value;
+        const data = {
+            cat: activeOpt,
+            port: document.getElementById('s_port').value.toUpperCase(),
+            truck: document.getElementById('s_truck').value.toUpperCase(),
+            supIn: document.getElementById('s_in').value,
+            supOut: document.getElementById('s_out').value,
+            riplIn: id !== "" ? rows[id].riplIn : '',
+            riplOut: id !== "" ? rows[id].riplOut : '',
+            vSent: id !== "" ? rows[id].vSent : false,
+            date: (document.getElementById('s_out').value || new Date().toISOString()).split('T')[0]
+        };
+        if(id !== "") rows[id] = data; else rows.push(data);
+    } else {
+        const t = document.getElementById('r_truck').value.toUpperCase();
+        const idx = rows.findLastIndex(r => r.truck === t && r.cat === activeOpt && !r.riplOut);
+        if(idx !== -1) {
+            rows[idx].riplIn = document.getElementById('r_in').value;
+            rows[idx].riplOut = document.getElementById('r_out').value;
+        } else alert("Truck not found!");
+    }
+    persist();
+    e.target.reset(); document.getElementById('s_id').value = "";
+    syncOptions(activeOpt);
+}
+
+function persist() { 
+    localStorage.setItem('rowsData_V10', JSON.stringify(rows)); 
+    localStorage.setItem('callState_V10', JSON.stringify(callState));
+    render(); 
+}
+
+function callTruck(port, truck) { callState[port] = { truck, ack: false }; persist(); }
+function ackCall(port) { if(callState[port]) { callState[port].ack = true; persist(); } }
+function vehicleSent(port, truck) {
+    const idx = rows.findIndex(r => r.port === port && r.truck === truck && !r.riplIn);
+    if(idx !== -1) rows[idx].vSent = true;
+    delete callState[port];
+    persist();
+}
+
+function exportExcel() {
+    const start = document.getElementById('trend_start').value;
+    const end = document.getElementById('trend_end').value;
+    const filtered = rows.filter(r => r.date >= start && r.date <= end);
+    let csv = "FIFO,Category,Port,TruckNo,GateIn,GateOut,RiplIn,RiplOut,Status\n";
+    filtered.forEach((r, i) => csv += `${i+1},${r.cat},${r.port},${r.truck},${r.supIn},${r.supOut},${r.riplIn},${r.riplOut},${r.riplOut?'DONE':'QUEUED'}\n`);
+    const a = document.createElement('a'); a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `TruckMaster_${start}_to_${end}.csv`; a.click();
+}
+
+function render() {
+    const tbody = document.getElementById('tableBody');
+    const dash = document.getElementById('portDashboard');
+    const fPort = document.getElementById('f_port').value;
+    const fStat = document.getElementById('f_status').value;
+    const start = document.getElementById('trend_start').value;
+    const end = document.getElementById('trend_end').value;
+
+    // Trend Calc
+    const trends = { Body: {in:0, out:0}, "T&C": {in:0, out:0}, PWT: {in:0, out:0} };
+    rows.forEach(r => {
+        if(r.date >= start && r.date <= end) trends[r.cat].in++;
+        if(r.riplOut && r.riplOut.split('T')[0] >= start && r.riplOut.split('T')[0] <= end) trends[r.cat].out++;
+    });
+    const max = Math.max(...Object.values(trends).flatMap(o => [o.in, o.out]), 5);
+    ['Body', 'TC', 'PWT'].forEach(id => {
+        const key = id === 'TC' ? 'T&C' : id;
+        document.getElementById(`bar${id}In`).style.height = (trends[key].in / max * 100) + '%';
+        document.getElementById(`bar${id}Out`).style.height = (trends[key].out / max * 100) + '%';
+        document.getElementById(`val${id}In`).innerText = trends[key].in;
+        document.getElementById(`val${id}Out`).innerText = trends[key].out;
+    });
+
+    const filtered = rows.filter(r => r.cat === activeOpt);
+    const waiting = filtered.filter(r => !r.riplIn).sort((a,b) => new Date(a.supOut) - new Date(b.supOut));
+    document.getElementById('totalWaitingCount').innerText = waiting.length;
+
+    dash.innerHTML = ''; tbody.innerHTML = '';
+    const ports = [...new Set(filtered.map(r => r.port))].sort();
+    const pSel = document.getElementById('f_port');
+    const curP = pSel.value;
+    pSel.innerHTML = '<option value="">All Ports</option>' + ports.map(p => `<option value="${p}">${p}</option>`).join('');
+    pSel.value = curP;
+
+    const nextTrucksByPort = {};
+    ports.forEach(p => {
+        const pQ = waiting.filter(r => r.port === p);
+        if(pQ.length > 0) {
+            nextTrucksByPort[p] = pQ[0].truck;
+            dash.innerHTML += `<div class="dash-card"><b>${p}</b><div>Wait: ${pQ.length}</div><div>Next: <span style="color:#ffeb3b">${pQ[0].truck}</span></div></div>`;
+        }
+    });
+
+    filtered.sort((a,b) => new Date(a.supOut) - new Date(b.supOut)).forEach((r) => {
+        const pCall = callState[r.port];
+        let status = r.riplOut ? "COMPLETED" : (r.vSent ? "VEHICLE SENT" : (pCall && pCall.truck === r.truck && pCall.ack ? "ACKNOWLEDGED" : (r.riplIn ? "PROCESSING" : "QUEUED")));
+        if(fPort && r.port !== fPort) return;
+        if(fStat && status !== fStat) return;
+
+        const tr = tbody.insertRow();
+        if(r.truck === nextTrucksByPort[r.port] && !r.riplIn) tr.className = "fifo-next";
+        tr.insertCell().innerText = r.riplOut ? 'DONE' : (waiting.indexOf(r) !== -1 ? waiting.indexOf(r) + 1 : '-');
+        tr.insertCell().innerText = r.cat;
+        tr.insertCell().innerText = r.port;
+        tr.insertCell().innerText = r.truck;
+        tr.insertCell().innerText = (r.supIn || '').replace('T',' ');
+        tr.insertCell().innerText = (r.supOut || '').replace('T',' ');
+        tr.insertCell().innerText = (r.riplIn || '').replace('T',' ');
+        tr.insertCell().innerText = (r.riplOut || '').replace('T',' ');
+        const sCell = tr.insertCell(); sCell.innerText = status;
+        if(status === "ACKNOWLEDGED") sCell.className = "status-ack";
+
+        const aCell = tr.insertCell();
+        if(r.truck === nextTrucksByPort[r.port]) {
+            if(role === 'RIPL' || role === 'ADMIN') {
+                if(!pCall || pCall.truck !== r.truck) aCell.innerHTML = `<button class="btn-call" onclick="callTruck('${r.port}','${r.truck}')">Call</button>`;
+                else aCell.innerHTML = `<span style="font-size:10px; color:#c62828">Calling...</span>`;
+            }
+            if((role === 'SUPPLIER' || role === 'ADMIN') && pCall && pCall.truck === r.truck) {
+                if(!pCall.ack) { aCell.innerHTML = `<button class="btn-ack" onclick="ackCall('${r.port}')">Ack</button>`; document.getElementById('callSound').play(); }
+                else aCell.innerHTML = `<button class="btn-send" onclick="vehicleSent('${r.port}','${r.truck}')">Sent</button>`;
+            }
+        }
+        tr.insertCell().innerHTML = `<button onclick="editRow(${rows.indexOf(r)})" style="background:none;border:none;cursor:pointer">✏️</button>`;
+    });
+}
+
+function editRow(idx) {
+    const r = rows[idx];
+    document.getElementById('s_id').value = idx;
+    syncOptions(r.cat);
+    document.getElementById('s_port').value = r.port;
+    document.getElementById('s_truck').value = r.truck;
+    document.getElementById('s_in').value = r.supIn;
+    document.getElementById('s_out').value = r.supOut;
+}
+
+// LIVE UPDATE EVERY 5 SECONDS
+setInterval(render, 30000);
+</script>
+</body>
+</html>
