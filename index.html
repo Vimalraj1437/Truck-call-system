@@ -174,27 +174,20 @@ function login() {
         document.getElementById('appScreen').classList.remove('hidden');
         if(role === 'SUPPLIER' || role === 'ADMIN') document.getElementById('supplierForm').style.display = 'block';
         if(role === 'RIPL' || role === 'ADMIN') document.getElementById('riplForm').style.display = 'block';
-        const firebaseConfig = {
+       <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<script>
+// 2. YOUR FIREBASE CONFIG (Copied from your Firebase Console)
+const firebaseConfig = {
   apiKey: "AIzaSyA4k5EoW6Cmb-UZo6I3XaNekkCoZLrA7xk",
   authDomain: "truck-call-system.firebaseapp.com",
+  databaseURL: "https://truck-call-system-default-rtdb.firebaseio.com", 
   projectId: "truck-call-system",
   storageBucket: "truck-call-system.firebasestorage.app",
   messagingSenderId: "115934832799",
   appId: "1:115934832799:web:93fbdcfe2f7afd22265aaa",
   measurementId: "G-36B9JR0FQG"
-};
-        <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-
-<script>
-// 2. PASTE YOUR CONFIG FROM FIREBASE HERE
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  databaseURL: "YOUR_DATABASE_URL",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase
@@ -206,7 +199,7 @@ let callState = {};
 let role = '';
 let activeOpt = 'Body';
 
-// 3. LIVE SYNC: This replaces localStorage to show data to everyone instantly
+// 3. LIVE CLOUD SYNC (The "Bridge" between Mobile and Laptop)
 db.ref('truckData').on('value', (snapshot) => {
     rows = snapshot.val() || [];
     render();
@@ -217,14 +210,13 @@ db.ref('callState').on('value', (snapshot) => {
     render();
 });
 
-// 4. Update the Persist function to save to Cloud
+// 4. CLOUD PERSISTENCE
 function persist() {
     db.ref('truckData').set(rows);
     db.ref('callState').set(callState);
 }
 
-// --- Rest of your Master V10 functions ---
-
+// --- SYSTEM FUNCTIONS ---
 window.onload = () => {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('trend_start').value = today;
@@ -321,10 +313,12 @@ function render() {
     const max = Math.max(...Object.values(trends).flatMap(o => [o.in, o.out]), 5);
     ['Body', 'TC', 'PWT'].forEach(id => {
         const key = id === 'TC' ? 'T&C' : id;
-        document.getElementById(`bar${id}In`).style.height = (trends[key].in / max * 100) + '%';
-        document.getElementById(`bar${id}Out`).style.height = (trends[key].out / max * 100) + '%';
-        document.getElementById(`val${id}In`).innerText = trends[key].in;
-        document.getElementById(`val${id}Out`).innerText = trends[key].out;
+        if(document.getElementById(`bar${id}In`)) {
+            document.getElementById(`bar${id}In`).style.height = (trends[key].in / max * 100) + '%';
+            document.getElementById(`bar${id}Out`).style.height = (trends[key].out / max * 100) + '%';
+            document.getElementById(`val${id}In`).innerText = trends[key].in;
+            document.getElementById(`val${id}Out`).innerText = trends[key].out;
+        }
     });
 
     const filtered = rows.filter(r => r.cat === activeOpt);
