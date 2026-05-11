@@ -174,6 +174,72 @@ function login() {
         document.getElementById('appScreen').classList.remove('hidden');
         if(role === 'SUPPLIER' || role === 'ADMIN') document.getElementById('supplierForm').style.display = 'block';
         if(role === 'RIPL' || role === 'ADMIN') document.getElementById('riplForm').style.display = 'block';
+        const firebaseConfig = {
+  apiKey: "AIzaSyA4k5EoW6Cmb-UZo6I3XaNekkCoZLrA7xk",
+  authDomain: "truck-call-system.firebaseapp.com",
+  projectId: "truck-call-system",
+  storageBucket: "truck-call-system.firebasestorage.app",
+  messagingSenderId: "115934832799",
+  appId: "1:115934832799:web:93fbdcfe2f7afd22265aaa",
+  measurementId: "G-36B9JR0FQG"
+};
+        <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<script>
+// 2. PASTE YOUR CONFIG FROM FIREBASE HERE
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  databaseURL: "YOUR_DATABASE_URL",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let rows = [];
+let callState = {};
+let role = '';
+let activeOpt = 'Body';
+
+// 3. LIVE SYNC: This replaces localStorage to show data to everyone instantly
+db.ref('truckData').on('value', (snapshot) => {
+    rows = snapshot.val() || [];
+    render();
+});
+
+db.ref('callState').on('value', (snapshot) => {
+    callState = snapshot.val() || {};
+    render();
+});
+
+// 4. Update the Persist function to save to Cloud
+function persist() {
+    db.ref('truckData').set(rows);
+    db.ref('callState').set(callState);
+}
+
+// --- Rest of your Master V10 functions ---
+
+window.onload = () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('trend_start').value = today;
+    document.getElementById('trend_end').value = today;
+};
+
+function login() {
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if(p.includes('@123')) {
+        role = u.toUpperCase();
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        if(role === 'SUPPLIER' || role === 'ADMIN') document.getElementById('supplierForm').style.display = 'block';
+        if(role === 'RIPL' || role === 'ADMIN') document.getElementById('riplForm').style.display = 'block';
         render();
     }
 }
@@ -220,12 +286,6 @@ function saveEntry(e, type) {
     syncOptions(activeOpt);
 }
 
-function persist() { 
-    localStorage.setItem('rowsData_V10', JSON.stringify(rows)); 
-    localStorage.setItem('callState_V10', JSON.stringify(callState));
-    render(); 
-}
-
 function callTruck(port, truck) { callState[port] = { truck, ack: false }; persist(); }
 function ackCall(port) { if(callState[port]) { callState[port].ack = true; persist(); } }
 function vehicleSent(port, truck) {
@@ -253,7 +313,6 @@ function render() {
     const start = document.getElementById('trend_start').value;
     const end = document.getElementById('trend_end').value;
 
-    // Trend Calc
     const trends = { Body: {in:0, out:0}, "T&C": {in:0, out:0}, PWT: {in:0, out:0} };
     rows.forEach(r => {
         if(r.date >= start && r.date <= end) trends[r.cat].in++;
@@ -331,9 +390,4 @@ function editRow(idx) {
     document.getElementById('s_in').value = r.supIn;
     document.getElementById('s_out').value = r.supOut;
 }
-
-// LIVE UPDATE EVERY 5 SECONDS
-setInterval(render, 30000);
 </script>
-</body>
-</html>
